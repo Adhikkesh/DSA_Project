@@ -208,7 +208,23 @@ class EventManager {
         }
     }
 
-    public void addEvent(String title, String description, String location, int priority, Interval interval, boolean isRecurring, int recurringDays) {
+//    public void addEvent(String title, String description, String location, int priority, Interval interval, boolean isRecurring, int recurringDays) {
+//        if (isRecurring) {
+//            for (int i = 0; i < recurringDays; i++) {
+//                Event event = new Event(nextEventID++, title, description, location, priority, interval, isRecurring, recurringDays);
+//                if (!days[i].addEvent(event)) {
+//                    System.out.println("Conflict detected for day " + (i + 1) + ".");
+//                }
+//            }
+//        } else {
+//            Event event = new Event(nextEventID++, title, description, location, priority, interval, isRecurring, 1);
+//            if (!days[0].addEvent(event)) {
+//                System.out.println("Conflict detected for day 1.");
+//            }
+//        }
+//    }
+
+    public void addEvent(String title, String description, String location, int priority, Interval interval, boolean isRecurring, int recurringDays, int day) {
         if (isRecurring) {
             for (int i = 0; i < recurringDays; i++) {
                 Event event = new Event(nextEventID++, title, description, location, priority, interval, isRecurring, recurringDays);
@@ -218,8 +234,8 @@ class EventManager {
             }
         } else {
             Event event = new Event(nextEventID++, title, description, location, priority, interval, isRecurring, 1);
-            if (!days[0].addEvent(event)) {
-                System.out.println("Conflict detected for day 1.");
+            if (!days[day].addEvent(event)) {
+                System.out.println("Conflict detected for day " + (day + 1) + ".");
             }
         }
     }
@@ -278,15 +294,215 @@ class EventManager {
     }
 }
 
-public class Main {
+//public class Main {
+//    public static void main(String[] args) {
+//        Scanner scanner = new Scanner(System.in);
+//        System.out.println("Welcome to the Event Manager");
+//        System.out.println("============================");
+//        System.out.println("How many days would you like to schedule events for?");
+//        int days = scanner.nextInt();
+//
+//        EventManager manager = new EventManager(days);
+//        int choice;
+//
+//        do {
+//            System.out.println("\nMenu:");
+//            System.out.println("1. Add Event");
+//            System.out.println("2. Display Free Slots");
+//            System.out.println("3. Display All Events");
+//            System.out.println("4. Modify Event");
+//            System.out.println("5. Delete Event");
+//            System.out.println("6. Exit");
+//            System.out.print("Enter your choice: ");
+//            choice = scanner.nextInt();
+//            scanner.nextLine();
+//
+//            switch (choice) {
+//                case 1:
+//                    System.out.print("Enter title: ");
+//                    String title = scanner.nextLine();
+//                    System.out.print("Enter description: ");
+//                    String desc = scanner.nextLine();
+//                    System.out.print("Enter location (Tech Fair Pavilion/Main Stage/Outdoor Garden): ");
+//                    String location = scanner.nextLine().trim();
+//                    System.out.print("Enter priority (1-highest to 5-lowest): ");
+//                    int priority = scanner.nextInt();
+//                    System.out.print("Enter start time (24-hour format): ");
+//                    int startTime = scanner.nextInt();
+//                    System.out.print("Enter end time (24-hour format): ");
+//                    int endTime = scanner.nextInt();
+//                    System.out.print("Is this event recurring (true/false): ");
+//                    boolean isRecurring = scanner.nextBoolean();
+//                    int recurringDays = 1;
+//                    if (isRecurring) {
+//                        System.out.print("Enter number of days for recurrence: ");
+//                        recurringDays = scanner.nextInt();
+//                    }
+//
+//                    manager.addEvent(title, desc, location, priority, new Interval(startTime, endTime), isRecurring, recurringDays);
+//                    break;
+//
+//                case 2:
+//                    System.out.print("Enter day: ");
+//                    int day = scanner.nextInt();
+//                    scanner.nextLine();
+//                    System.out.print("Enter location (Tech Fair Pavilion/Main Stage/Outdoor Garden): ");
+//                    String slotLocation = scanner.nextLine();
+//                    manager.displayFreeSlots(day, slotLocation);
+//                    break;
+//
+//                case 3:
+//                    manager.displayAllEvents();
+//                    break;
+//
+//                case 4:
+//                    System.out.print("Enter event ID: ");
+//                    int eventID = scanner.nextInt();
+//                    System.out.print("Enter day: ");
+//                    int modDay = scanner.nextInt();
+//                    System.out.print("Enter new start time: ");
+//                    int newStart = scanner.nextInt();
+//                    System.out.print("Enter new end time: ");
+//                    int newEnd = scanner.nextInt();
+//
+//                    manager.modifyEvent(eventID, new Interval(newStart, newEnd), modDay);
+//                    break;
+//
+//                case 5:
+//                    System.out.print("Enter event ID: ");
+//                    int delEventID = scanner.nextInt();
+//                    System.out.print("Enter day: ");
+//                    int delDay = scanner.nextInt();
+//                    manager.deleteEvent(delEventID, delDay);
+//                    break;
+//
+//                case 6:
+//                    System.out.println("Exiting program...");
+//                    break;
+//
+//                default:
+//                    System.out.println("Invalid choice, please try again.");
+//            }
+//
+//        } while (choice != 6);
+//
+//        scanner.close();
+//    }
+//}
+
+//public class Main {
+//    public static void main(String[] args) {
+//        Scanner scanner = new Scanner(System.in);
+//        System.out.println("Welcome to the Event Manager");
+//        System.out.println("============================");
+//        System.out.print("How many days would you like to schedule events for? ");
+//        int totalDays = scanner.nextInt();
+//        EventManager manager = new EventManager(totalDays);
+//        int choice;
+//
+//        do {
+//            System.out.println("\nMenu:");
+//            System.out.println("1. Add Event");
+//            System.out.println("2. Display Free Slots");
+//            System.out.println("3. Display All Events");
+//            System.out.println("4. Modify Event");
+//            System.out.println("5. Delete Event");
+//            System.out.println("6. Exit");
+//            System.out.print("Enter your choice: ");
+//            choice = scanner.nextInt();
+//            scanner.nextLine();
+//
+//            switch (choice) {
+//                case 1:
+//                    System.out.print("Enter Day (1, 2, or 3): ");
+//                    int dayToAdd = scanner.nextInt();
+//                    scanner.nextLine(); // Consume newline
+//
+//                    if (dayToAdd < 1 || dayToAdd > totalDays) {
+//                        System.out.println("Invalid day. Please enter a valid day.");
+//                        break;
+//                    }
+//
+//                    System.out.print("Enter title: ");
+//                    String title = scanner.nextLine();
+//                    System.out.print("Enter description: ");
+//                    String desc = scanner.nextLine();
+//                    System.out.print("Enter location (Tech Fair Pavilion/Main Stage/Outdoor Garden): ");
+//                    String location = scanner.nextLine().trim();
+//                    System.out.print("Enter priority (1-highest to 5-lowest): ");
+//                    int priority = scanner.nextInt();
+//                    System.out.print("Enter start time (24-hour format): ");
+//                    int startTime = scanner.nextInt();
+//                    System.out.print("Enter end time (24-hour format): ");
+//                    int endTime = scanner.nextInt();
+//                    System.out.print("Is this event recurring (true/false): ");
+//                    boolean isRecurring = scanner.nextBoolean();
+//                    int recurringDays = 1;
+//                    if (isRecurring) {
+//                        System.out.print("Enter number of days for recurrence: ");
+//                        recurringDays = scanner.nextInt();
+//                    }
+//
+//                    // Add the event to the specified day
+//                    manager.addEvent(title, desc, location, priority, new Interval(startTime, endTime), isRecurring, recurringDays);
+//                    break;
+//
+//                case 2:
+//                    System.out.print("Enter day (1, 2, or 3): ");
+//                    int day = scanner.nextInt();
+//                    scanner.nextLine();
+//                    System.out.print("Enter location (Tech Fair Pavilion/Main Stage/Outdoor Garden): ");
+//                    String slotLocation = scanner.nextLine();
+//                    manager.displayFreeSlots(day, slotLocation);
+//                    break;
+//
+//                case 3:
+//                    manager.displayAllEvents();
+//                    break;
+//
+//                case 4:
+//                    System.out.print("Enter event ID: ");
+//                    int eventID = scanner.nextInt();
+//                    System.out.print("Enter day (1, 2, or 3): ");
+//                    int modDay = scanner.nextInt();
+//                    System.out.print("Enter new start time: ");
+//                    int newStart = scanner.nextInt();
+//                    System.out.print("Enter new end time: ");
+//                    int newEnd = scanner.nextInt();
+//
+//                    manager.modifyEvent(eventID, new Interval(newStart, newEnd), modDay);
+//                    break;
+//
+//                case 5:
+//                    System.out.print("Enter event ID: ");
+//                    int delEventID = scanner.nextInt();
+//                    System.out.print("Enter day (1, 2, or 3): ");
+//                    int delDay = scanner.nextInt();
+//                    manager.deleteEvent(delEventID, delDay);
+//                    break;
+//
+//                case 6:
+//                    System.out.println("Exiting program...");
+//                    break;
+//
+//                default:
+//                    System.out.println("Invalid choice, please try again.");
+//            }
+//
+//        } while (choice != 6);
+//
+//        scanner.close();
+//    }
+//}
+
+class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Welcome to the Event Manager");
         System.out.println("============================");
-        System.out.println("How many days would you like to schedule events for?");
-        int days = scanner.nextInt();
-
-        EventManager manager = new EventManager(days);
+        System.out.print("How many days would you like to schedule events for? ");
+        int totalDays = scanner.nextInt();
+        EventManager manager = new EventManager(totalDays);
         int choice;
 
         do {
@@ -299,7 +515,7 @@ public class Main {
             System.out.println("6. Exit");
             System.out.print("Enter your choice: ");
             choice = scanner.nextInt();
-            scanner.nextLine();
+            scanner.nextLine(); // consume newline
 
             switch (choice) {
                 case 1:
@@ -318,18 +534,21 @@ public class Main {
                     System.out.print("Is this event recurring (true/false): ");
                     boolean isRecurring = scanner.nextBoolean();
                     int recurringDays = 1;
+                    int days = 0;
                     if (isRecurring) {
                         System.out.print("Enter number of days for recurrence: ");
                         recurringDays = scanner.nextInt();
+                    } else {
+                        System.out.print("Enter the day (Day 1, Day 2, etc.) to schedule the event: ");
+                        days = scanner.nextInt();// Send day - 1 for 0-based index
                     }
-
-                    manager.addEvent(title, desc, location, priority, new Interval(startTime, endTime), isRecurring, recurringDays);
+                    manager.addEvent(title, desc, location, priority, new Interval(startTime, endTime), isRecurring, recurringDays, days - 1);
                     break;
 
                 case 2:
                     System.out.print("Enter day: ");
                     int day = scanner.nextInt();
-                    scanner.nextLine();
+                    scanner.nextLine(); // consume newline
                     System.out.print("Enter location (Tech Fair Pavilion/Main Stage/Outdoor Garden): ");
                     String slotLocation = scanner.nextLine();
                     manager.displayFreeSlots(day, slotLocation);
@@ -373,3 +592,110 @@ public class Main {
         scanner.close();
     }
 }
+
+//class Main {
+//
+//    public static void main(String[] args) {
+//        Scanner scanner = new Scanner(System.in);
+//        System.out.println("╔══════════════╗");
+//        System.out.println("║ Fusion Fest  ║");
+//        System.out.println("╚══════════════╝");
+//        System.out.println("Bringing you the best event scheduling experience... or is it?");
+//        System.out.println("─────────────────────────────────────────");
+//        System.out.print("How many days would you like to schedule events for? ");
+//        int totalDays = scanner.nextInt();
+//
+//        EventManager manager = new EventManager(totalDays); // Assuming EventManager and Interval classes exist
+//        int choice;
+//
+//        do {
+//            System.out.println("\nMenu:");
+//            System.out.println("1. Add Event");
+//            System.out.println("2. Display Free Slots");
+//            System.out.println("3. Display All Events");
+//            System.out.println("4. Modify Event");
+//            System.out.println("5. Delete Event");
+//            System.out.println("6. Exit");
+//            System.out.print("Your choice: ");
+//            choice = scanner.nextInt();
+//            scanner.nextLine(); // Consume newline
+//
+//            switch (choice) {
+//                case 1:
+//                    System.out.println("Adding a new event. Stay calm, it's probably not double-booked... right?");
+//                    System.out.print("Enter event title: ");
+//                    String title = scanner.nextLine();
+//                    System.out.print("Enter description: ");
+//                    String desc = scanner.nextLine();
+//                    System.out.print("Choose location (Tech Fair Pavilion/Main Stage/Outdoor Garden): ");
+//                    String location = scanner.nextLine().trim();
+//                    System.out.print("Set priority (1-highest to 5-lowest): ");
+//                    int priority = scanner.nextInt();
+//                    System.out.print("Set start time (24-hour format): ");
+//                    int startTime = scanner.nextInt();
+//                    System.out.print("Set end time (24-hour format): ");
+//                    int endTime = scanner.nextInt();
+//                    System.out.print("Is this a recurring event (true/false)? ");
+//                    boolean isRecurring = scanner.nextBoolean();
+//                    int recurringDays = 1;
+//
+//                    if (isRecurring) {
+//                        System.out.print("Enter number of recurrence days: ");
+//                        recurringDays = scanner.nextInt();
+//                    } else {
+//                        System.out.print("Enter the day (Day 1, Day 2, etc.): ");
+//                        int day = scanner.nextInt();
+//                        manager.addEvent(title, desc, location, priority, new Interval(startTime, endTime), isRecurring, recurringDays, day - 1); // Adjust day for 0-based index
+//                    }
+//                    System.out.println("Event added successfully... or was it?");
+//                    break;
+//
+//                case 2:
+//                    System.out.print("Enter the day to check free slots: ");
+//                    int day = scanner.nextInt();
+//                    scanner.nextLine(); // Consume newline
+//                    System.out.print("Choose location (Tech Fair Pavilion/Main Stage/Outdoor Garden): ");
+//                    String slotLocation = scanner.nextLine();
+//                    manager.displayFreeSlots(day, slotLocation);
+//                    break;
+//
+//                case 3:
+//                    System.out.println("Displaying all scheduled events... Prepare yourself.");
+//                    manager.displayAllEvents();
+//                    break;
+//
+//                case 4:
+//                    System.out.print("Enter event ID to modify: ");
+//                    int eventID = scanner.nextInt();
+//                    System.out.print("Enter new day for the event: ");
+//                    int modDay = scanner.nextInt();
+//                    System.out.print("Enter new start time: ");
+//                    int newStart = scanner.nextInt();
+//                    System.out.print("Enter new end time: ");
+//                    int newEnd = scanner.nextInt();
+//                    manager.modifyEvent(eventID, new Interval(newStart, newEnd), modDay);
+//                    System.out.println("Event modified. Hope that didn’t mess anything up...");
+//                    break;
+//
+//                case 5:
+//                    System.out.print("Enter event ID to delete: ");
+//                    int delEventID = scanner.nextInt();
+//                    System.out.print("Enter the day: ");
+//                    int delDay = scanner.nextInt();
+//                    manager.deleteEvent(delEventID, delDay);
+//                    System.out.println("Event deleted. Surely nothing will go wrong.");
+//                    break;
+//
+//                case 6:
+//                    System.out.println("Exiting the Event Manager... but remember, nothing is ever truly deleted.");
+//                    break;
+//
+//                default:
+//                    System.out.println("Hmm, that doesn't seem like a valid option. Try again?");
+//            }
+//
+//        } while (choice != 6);
+//
+//        scanner.close();
+//    }
+//}
