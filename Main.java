@@ -16,7 +16,7 @@ class Interval implements Comparable<Interval> {
 
     @Override
     public String toString() {
-        return "[" + start + ", " + end + "]";
+        return "[" + start + ":00 - " + end + ":00]";
     }
 
     @Override
@@ -32,15 +32,17 @@ class Event {
     int eventID;
     String title;
     String description;
-    int priority;  // Lower value means higher priority
+    String location;
+    int priority;
     Interval interval;
     boolean isRecurring;
-    int recurringDays;  // Number of days for recurring events
+    int recurringDays;
 
-    public Event(int eventID, String title, String description, int priority, Interval interval, boolean isRecurring, int recurringDays) {
+    public Event(int eventID, String title, String description, String location, int priority, Interval interval, boolean isRecurring, int recurringDays) {
         this.eventID = eventID;
         this.title = title;
         this.description = description;
+        this.location = location;
         this.priority = priority;
         this.interval = interval;
         this.isRecurring = isRecurring;
@@ -49,24 +51,39 @@ class Event {
 
     @Override
     public String toString() {
-        return "ID: " + eventID + ", Title: " + title + ", Time: " + interval + ", Priority: " + priority + ", Recurring: " + isRecurring;
+        return "ID: " + eventID + ", Title: " + title + ", Location: " + location + ", Time: " + interval + ", Priority: " + priority + ", Recurring: " + isRecurring;
     }
 }
 
 class IntervalTree {
-    private TreeMap<Interval, Event> intervalTree = new TreeMap<>();
+    private Map<String, TreeMap<Interval, Event>> locationMap = new HashMap<>();
+
+    public IntervalTree() {
+        locationMap.put("Tech Fair Pavilion", new TreeMap<>());
+        locationMap.put("Main Stage", new TreeMap<>());
+        locationMap.put("Outdoor Garden", new TreeMap<>());
+    }
 
     public boolean addEvent(Event event) {
-        // Check for conflicts
-        for (Map.Entry<Interval, Event> entry : intervalTree.entrySet()) {
+        // Trim the location input to avoid issues with extra spaces
+        String trimmedLocation = event.location.trim();
+
+        // Check if the location exists in the map
+        if (!locationMap.containsKey(trimmedLocation)) {
+            System.out.println("Location '" + trimmedLocation + "' does not exist. Please select a valid location.");
+            return false;
+        }
+
+        TreeMap<Interval, Event> locationEvents = locationMap.get(trimmedLocation);
+
+        // Check for conflicts in the specific location
+        for (Map.Entry<Interval, Event> entry : locationEvents.entrySet()) {
             if (entry.getKey().overlaps(event.interval)) {
                 Event conflictingEvent = entry.getValue();
-
-                // Compare priorities
                 if (event.priority < conflictingEvent.priority) {
                     // New event has higher priority, reschedule conflicting event
-                    intervalTree.remove(entry.getKey());
-                    intervalTree.put(event.interval, event);
+                    locationEvents.remove(entry.getKey());
+                    locationEvents.put(event.interval, event);
                     return rescheduleEvent(conflictingEvent);
                 } else {
                     // Conflict with higher or equal priority, reschedule the new event
@@ -74,113 +91,106 @@ class IntervalTree {
                 }
             }
         }
+
         // No conflict, add the event
-        intervalTree.put(event.interval, event);
+        locationEvents.put(event.interval, event);
         return true;
     }
 
+
     private boolean rescheduleEvent(Event event) {
-        int newStart = Math.max(event.interval.start, getEarliestAvailableTime(event.interval.start)); // Get earliest available slot
-        int newEnd = newStart + (event.interval.end - event.interval.start); // Maintain the same duration
+        TreeMap<Interval, Event> locationEvents = locationMap.get(event.location);
+        int newStart = Math.max(event.interval.start, getEarliestAvailableTime(event.interval.start, event.location));
+        int newEnd = newStart + (event.interval.end - event.interval.start);
 
-        while (newEnd <= 24) { // Assuming we're working within a 24-hour period
+        while (newEnd <= 24) {
             Interval newInterval = new Interval(newStart, newEnd);
-
-            // Check if new interval is free
             boolean conflict = false;
-            for (Interval interval : intervalTree.keySet()) {
+            for (Interval interval : locationEvents.keySet()) {
                 if (interval.overlaps(newInterval)) {
                     conflict = true;
                     break;
                 }
             }
-
             if (!conflict) {
-                // Slot found, reschedule the event
                 event.interval = newInterval;
-                intervalTree.put(newInterval, event);
+                locationEvents.put(newInterval, event);
                 return true;
             }
-
-            // If there's a conflict, move the event further
             newStart = newEnd;
             newEnd = newStart + (event.interval.end - event.interval.start);
         }
 
-        // No free slot found
         System.out.println("No available slot to reschedule event: " + event.title);
         return false;
     }
 
-    private int getEarliestAvailableTime(int startTime) {
-        for (Interval interval : intervalTree.keySet()) {
+    private int getEarliestAvailableTime(int startTime, String location) {
+        TreeMap<Interval, Event> locationEvents = locationMap.get(location);
+        for (Interval interval : locationEvents.keySet()) {
             if (interval.start >= startTime) {
-                return interval.end; // Return the end time of the first conflicting event
+                return interval.end;
             }
         }
-        return startTime; // If no conflict, return the initial start time
+        return startTime;
     }
 
-
-
-
-    public boolean removeEvent(int eventID) {
-        Interval intervalToRemove = null;
-        for (Map.Entry<Interval, Event> entry : intervalTree.entrySet()) {
-            if (entry.getValue().eventID == eventID) {
-                intervalToRemove = entry.getKey();
-                break;
-            }
-        }
-        if (intervalToRemove != null) {
-            intervalTree.remove(intervalToRemove);
-            return true;
-        }
-        return false;
-    }
-
-    public boolean modifyEvent(int eventID, Interval newInterval, int newPriority) {
-        Event eventToModify = null;
-        Interval oldInterval = null;
-
-        // Find event by ID
-        for (Map.Entry<Interval, Event> entry : intervalTree.entrySet()) {
-            if (entry.getValue().eventID == eventID) {
-                eventToModify = entry.getValue();
-                oldInterval = entry.getKey();
-                break;
-            }
-        }
-
-        if (eventToModify == null) {
-            return false; // Event not found
-        }
-
-        // Remove the old event and check if the new slot is free
-        intervalTree.remove(oldInterval);
-        if (addEvent(new Event(eventID, eventToModify.title, eventToModify.description, newPriority, newInterval, eventToModify.isRecurring, eventToModify.recurringDays))) {
-            return true; // Event successfully modified
+    public void displayEvents(String location) {
+        TreeMap<Interval, Event> locationEvents = locationMap.get(location);
+        if (locationEvents.isEmpty()) {
+            System.out.println("No events scheduled in " + location + ".");
         } else {
-            intervalTree.put(oldInterval, eventToModify); // Restore the old event
-            return false; // Conflict in new interval
-        }
-    }
-
-    public void displayEvents() {
-        if (intervalTree.isEmpty()) {
-            System.out.println("No events scheduled.");
-        } else {
-            System.out.println("Scheduled Events:");
-            for (Map.Entry<Interval, Event> entry : intervalTree.entrySet()) {
+            System.out.println("Scheduled Events in " + location + ":");
+            for (Map.Entry<Interval, Event> entry : locationEvents.entrySet()) {
                 System.out.println(entry.getValue());
             }
         }
     }
 
-    public TreeMap<Interval, Event> getIntervalTree() {
-        return intervalTree;
+    public void displayFreeSlots(String location, int day) {
+        TreeMap<Interval, Event> locationEvents = locationMap.get(location);
+        System.out.println("Free slots for day " + day + " in " + location + ":");
+        int previousEnd = 0;
+
+        for (Interval interval : locationEvents.keySet()) {
+            if (interval.start > previousEnd) {
+                System.out.println("Free slot: " + previousEnd + ":00 - " + interval.start + ":00");
+            }
+            previousEnd = interval.end;
+        }
+
+        if (previousEnd < 24) {
+            System.out.println("Free slot: " + previousEnd + ":00 - 24:00");
+        }
     }
 
+    public boolean modifyEvent(int eventID, Interval newInterval) {
+        for (TreeMap<Interval, Event> events : locationMap.values()) {
+            for (Event event : events.values()) {
+                if (event.eventID == eventID) {
+                    events.remove(event.interval);
+                    event.interval = newInterval;
+                    return addEvent(event);
+                }
+            }
+        }
+        System.out.println("Event not found.");
+        return false;
+    }
+
+    public boolean deleteEvent(int eventID) {
+        for (TreeMap<Interval, Event> events : locationMap.values()) {
+            for (Event event : events.values()) {
+                if (event.eventID == eventID) {
+                    events.remove(event.interval);
+                    System.out.println("Event deleted.");
+                    return true;
+                }
+            }
+        }
+        System.out.println("Event not found.");
+        return false;
+    }
 }
 
 class EventManager {
@@ -194,100 +204,66 @@ class EventManager {
         }
     }
 
-    public void addEvent(String title, String description, int priority, Interval interval, boolean isRecurring, int recurringDays) {
+    public void addEvent(String title, String description, String location, int priority, Interval interval, boolean isRecurring, int recurringDays) {
         if (isRecurring) {
             for (int i = 0; i < recurringDays; i++) {
-                Scanner scanner = new Scanner(System.in);
-                System.out.print("Enter the day number to schedule the event (1 to " + days.length + "): ");
-                int day = scanner.nextInt();
-
-                // Validate the day input
-                if (day >= 1 && day <= days.length) {
-                    Event event = new Event(nextEventID++, title, description, priority, interval, isRecurring, recurringDays);
-                    if (!days[day - 1].addEvent(event)) {
-                        System.out.println("Conflict detected for day " + day + ".");
-                    }
-                } else {
-                    System.out.println("Invalid day: " + day + ". Skipping this occurrence.");
+                Event event = new Event(nextEventID++, title, description, location, priority, interval, isRecurring, recurringDays);
+                if (!days[i].addEvent(event)) {
+                    System.out.println("Conflict detected for day " + (i + 1) + ".");
                 }
             }
         } else {
-            // For non-recurring events, add to the first day
-            if (!days[0].addEvent(new Event(nextEventID++, title, description, priority, interval, isRecurring, recurringDays))) {
+            Event event = new Event(nextEventID++, title, description, location, priority, interval, isRecurring, 1);
+            if (!days[0].addEvent(event)) {
                 System.out.println("Conflict detected for day 1.");
             }
         }
     }
 
-    public void deleteEvent(int eventID, boolean deleteAllOccurrences) {
-        if (deleteAllOccurrences) {
-            for (IntervalTree day : days) {
-                day.removeEvent(eventID);
-            }
-        } else {
-            days[0].removeEvent(eventID);
-        }
-    }
-
-    public void modifyEvent(int eventID, Interval newInterval, int newPriority) {
-        for (IntervalTree day : days) {
-            if (day.modifyEvent(eventID, newInterval, newPriority)) {
-                System.out.println("Event modified.");
-                return;
-            }
-        }
-        System.out.println("Event not found or conflict in new schedule.");
+    public void displayFreeSlots(int day, String location) {
+        days[day - 1].displayFreeSlots(location, day);
     }
 
     public void displayAllEvents() {
-        String leftAlignFormat = "| %-10s | %-15s | %-10s | %-10s | %-8s | %-10s | %-8s |%n";
-
         for (int i = 0; i < days.length; i++) {
-            IntervalTree dayTree = days[i];
-
             System.out.println("Day " + (i + 1) + ":");
-            System.out.format("+------------+-----------------+------------+------------+----------+------------+----------+%n");
-            System.out.format("| Event ID   | Title           | Start Time | End Time   | Priority | Recurring  | Duration |%n");
-            System.out.format("+------------+-----------------+------------+------------+----------+------------+----------+%n");
-
-            if (dayTree.getIntervalTree().isEmpty()) {
-                System.out.println("| No events scheduled.                                                        |");
-            } else {
-                for (Map.Entry<Interval, Event> entry : dayTree.getIntervalTree().entrySet()) {
-                    Event event = entry.getValue();
-                    Interval interval = event.interval;
-
-                    System.out.printf(leftAlignFormat,
-                            event.eventID,
-                            event.title,
-                            interval.start + ":00",
-                            interval.end + ":00",
-                            event.priority,
-                            event.isRecurring ? "Yes" : "No",
-                            (interval.end - interval.start) + "h"
-                    );
-                }
-            }
-            System.out.format("+------------+-----------------+------------+------------+----------+------------+----------+%n");
+            days[i].displayEvents("Tech Fair Pavilion");
+            days[i].displayEvents("Main Stage");
+            days[i].displayEvents("Outdoor Garden");
         }
     }
-}
 
+    public boolean modifyEvent(int eventID, Interval newInterval, int day) {
+        return days[day - 1].modifyEvent(eventID, newInterval);
+    }
+
+    public boolean deleteEvent(int eventID, int day) {
+        return days[day - 1].deleteEvent(eventID);
+    }
+}
 
 public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter number of days for the event:");
+        System.out.println("Welcome to the Event Manager");
+        System.out.println("============================");
+        System.out.println("How many days would you like to schedule events for?");
         int days = scanner.nextInt();
 
         EventManager manager = new EventManager(days);
         int choice;
 
         do {
-            System.out.println("\n1. Add Event\n2. Delete Event\n3. Modify Event\n4. Display Events\n5. Exit");
-            System.out.print("Enter choice: ");
+            System.out.println("\nMenu:");
+            System.out.println("1. Add Event");
+            System.out.println("2. Display Free Slots");
+            System.out.println("3. Display All Events");
+            System.out.println("4. Modify Event");
+            System.out.println("5. Delete Event");
+            System.out.println("6. Exit");
+            System.out.print("Enter your choice: ");
             choice = scanner.nextInt();
-            scanner.nextLine();  // Consume the newline character after the integer
+            scanner.nextLine();
 
             switch (choice) {
                 case 1:
@@ -295,48 +271,68 @@ public class Main {
                     String title = scanner.nextLine();
                     System.out.print("Enter description: ");
                     String desc = scanner.nextLine();
+                    System.out.print("Enter location (Tech Fair Pavilion/Main Stage/Outdoor Garden): ");
+                    String location = scanner.nextLine().trim();
                     System.out.print("Enter priority (1-highest to 5-lowest): ");
                     int priority = scanner.nextInt();
-                    System.out.print("Enter start time (24-hour format, e.g., 10 for 10 AM): ");
+                    System.out.print("Enter start time (24-hour format): ");
                     int startTime = scanner.nextInt();
                     System.out.print("Enter end time (24-hour format): ");
                     int endTime = scanner.nextInt();
                     System.out.print("Is this event recurring (true/false): ");
                     boolean isRecurring = scanner.nextBoolean();
-                    int recurringDays = isRecurring ? days : 1;
+                    int recurringDays = 1;
+                    if (isRecurring) {
+                        System.out.print("Enter number of days for recurrence: ");
+                        recurringDays = scanner.nextInt();
+                    }
 
-                    Interval interval = new Interval(startTime, endTime);
-                    manager.addEvent(title, desc, priority, interval, isRecurring, recurringDays);
+                    manager.addEvent(title, desc, location, priority, new Interval(startTime, endTime), isRecurring, recurringDays);
                     break;
+
                 case 2:
-                    System.out.print("Enter Event ID to delete: ");
-                    int eventID = scanner.nextInt();
-                    System.out.print("Delete all occurrences (true/false): ");
-                    boolean deleteAll = scanner.nextBoolean();
-                    manager.deleteEvent(eventID, deleteAll);
+                    System.out.print("Enter day: ");
+                    int day = scanner.nextInt();
+                    scanner.nextLine();
+                    System.out.print("Enter location (Tech Fair Pavilion/Main Stage/Outdoor Garden): ");
+                    String slotLocation = scanner.nextLine();
+                    manager.displayFreeSlots(day, slotLocation);
                     break;
+
                 case 3:
-                    System.out.print("Enter Event ID to modify: ");
-                    int modifyID = scanner.nextInt();
+                    manager.displayAllEvents();
+                    break;
+
+                case 4:
+                    System.out.print("Enter event ID: ");
+                    int eventID = scanner.nextInt();
+                    System.out.print("Enter day: ");
+                    int modDay = scanner.nextInt();
                     System.out.print("Enter new start time: ");
                     int newStart = scanner.nextInt();
                     System.out.print("Enter new end time: ");
                     int newEnd = scanner.nextInt();
-                    System.out.print("Enter new priority: ");
-                    int newPriority = scanner.nextInt();
-                    Interval newInterval = new Interval(newStart, newEnd);
-                    manager.modifyEvent(modifyID, newInterval, newPriority);
+
+                    manager.modifyEvent(eventID, new Interval(newStart, newEnd), modDay);
                     break;
-                case 4:
-                    manager.displayAllEvents();
-                    break;
+
                 case 5:
-                    System.out.println("Exiting...");
+                    System.out.print("Enter event ID: ");
+                    int delEventID = scanner.nextInt();
+                    System.out.print("Enter day: ");
+                    int delDay = scanner.nextInt();
+                    manager.deleteEvent(delEventID, delDay);
                     break;
+
+                case 6:
+                    System.out.println("Exiting program...");
+                    break;
+
                 default:
-                    System.out.println("Invalid choice. Try again.");
+                    System.out.println("Invalid choice, please try again.");
             }
-        } while (choice != 5);
+
+        } while (choice != 6);
 
         scanner.close();
     }
