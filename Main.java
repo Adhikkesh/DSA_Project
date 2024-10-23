@@ -135,6 +135,10 @@ class IntervalTree {
         return startTime;
     }
 
+    public TreeMap<Interval, Event> getLocationEvents(String location) {
+        return locationMap.getOrDefault(location, new TreeMap<>()); // Return the events for the specified location
+    }
+
     public void displayEvents(String location) {
         TreeMap<Interval, Event> locationEvents = locationMap.get(location);
         if (locationEvents.isEmpty()) {
@@ -225,13 +229,45 @@ class EventManager {
     }
 
     public void displayAllEvents() {
+        String leftAlignFormat = "| %-10d | %-15s | %-10s | %-10s | %-8d | %-10s | %-8s |%n";
+
         for (int i = 0; i < days.length; i++) {
+            IntervalTree dayTree = days[i];
+
             System.out.println("Day " + (i + 1) + ":");
-            days[i].displayEvents("Tech Fair Pavilion");
-            days[i].displayEvents("Main Stage");
-            days[i].displayEvents("Outdoor Garden");
+            System.out.format("+------------+-----------------+------------+------------+----------+------------+----------+%n");
+            System.out.format("| Event ID   | Title           | Start Time | End Time   | Priority | Recurring  | Duration |%n");
+            System.out.format("+------------+-----------------+------------+------------+----------+------------+----------+%n");
+
+            boolean hasEvents = false;
+            // Iterate through each location and display events
+            for (String location : new String[]{"Tech Fair Pavilion", "Main Stage", "Outdoor Garden"}) {
+                TreeMap<Interval, Event> locationEvents = dayTree.getLocationEvents(location);
+                for (Map.Entry<Interval, Event> entry : locationEvents.entrySet()) {
+                    Event event = entry.getValue();
+                    Interval interval = event.interval;
+
+                    // Print the event in tabular format
+                    System.out.printf(leftAlignFormat,
+                            event.eventID,
+                            event.title,
+                            interval.start + ":00",
+                            interval.end + ":00",
+                            event.priority,
+                            event.isRecurring ? "Yes" : "No",
+                            (interval.end - interval.start) + "h"
+                    );
+                    hasEvents = true;
+                }
+            }
+
+            if (!hasEvents) {
+                System.out.println("| No events scheduled.                                                          |");
+            }
+            System.out.format("+------------+-----------------+------------+------------+----------+------------+----------+%n");
         }
     }
+
 
     public boolean modifyEvent(int eventID, Interval newInterval, int day) {
         return days[day - 1].modifyEvent(eventID, newInterval);
